@@ -1,0 +1,9 @@
+packages:
+  - packages/*
+  - apps/*
+
+allowBuilds:
+  # esbuild ships its native binary through an install script.
+  esbuild: true
+  # The only lifecycle script is an npx only-allow pnpm guard.
+  msedge-tts: true

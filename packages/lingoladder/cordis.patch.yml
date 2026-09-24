@@ -1,0 +1,60 @@
+# LingoLadder Agent Bundle Patch
+# Provides core agent + web search + skill system for English learning
+# Use with the lingoladder preset for skills (material-digest, knowledge-extractor, exercise-generator, material-search)
+#
+# The base layer (cordis:include) already provides: typert, typert-loader, gateway,
+# llm, agent, session, session-projection, session-query-sqlite, attachment-local,
+# workspace, settings-file, credentials-local, subprocess-local, sandbox-local, tools, etc.
+# This patch only adds what's unique to the lingoladder web profile.
+
+- insert:
+    - id: cordis-host-runner
+      name: '@deepseek-ai/dsh-cordis-host-runner'
+
+    # Web CLI flags parser (--host, --port, --no-open)
+    - id: web-startup
+      name: '@deepseek-ai/dsh-web-app/startup'
+
+    # HTTP server
+    - id: webserver
+      name: '@deepseek-ai/dsh-host-webserver'
+      inject: [webStartup]
+      config:
+        host: !!js ctx.webStartup.host ?? '127.0.0.1'
+        port: !!js ctx.webStartup.port ?? 4000
+
+    # DSH connection (HTTP RPC transport)
+    - id: connection
+      name: '@deepseek-ai/dsh-client-connection'
+      config:
+        trustedHosts: []
+
+    # API remotes (provides remote session/commands/subagents)
+    - id: api-remotes
+      name: '@deepseek-ai/dsh-api-remotes'
+
+    # Workspace registry
+    - id: workspace
+      name: '@deepseek-ai/dsh-workspace'
+
+    # Session controller (provides session.list and other session RPCs)
+    - id: session-controller
+      name: '@deepseek-ai/dsh-api-session-controller'
+      config:
+        nativeOpen: false
+
+    # Bundle plugin (logs load message)
+    - id: lingoladder
+      name: '@deepseek-ai/dsh-lingoladder'
+
+    # Task runner (headless mode)
+    - id: code-runtime
+      name: '@deepseek-ai/dsh-code-runtime-worker-thread'
+
+# Enable web_fetch so material-search can pull article and transcript text directly.
+# A non-insert patch replaces the row's config, so repeat the base row's values here.
+- id: tool-web
+  name: '@deepseek-ai/dsh-tool-web'
+  config:
+    fetch: true
+    searchTimeoutMs: 60000

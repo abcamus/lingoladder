@@ -1,0 +1,7 @@
+node_modules/
+lib/
+!src/lib/
+dist/
+*.tsbuildinfo
+.DS_Store
+.lingoladder/
