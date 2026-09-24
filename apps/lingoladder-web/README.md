@@ -1,7 +1,15 @@
-## 从 DSH 源码运行
+## 从哪里构建、在哪里运行
 
-运行web版: `pnpm dsh --profile lingoladder`
-运行桌面版: `pnpm --filter @deepseek-ai/dsh-desktop run start`
+本前端不再独立发布：`pnpm --filter @deepseek-ai/dsh-lingoladder-web build` 把产物直接写进 bundle 的
+[`packages/lingoladder/web/`](../../packages/lingoladder/web)，随 `@deepseek-ai/dsh-lingoladder` 一起安装。
+运行入口在仓库根目录：
+
+```sh
+pnpm start                                 # 构建、安装并启动（首次会一并准备 dsh 子模块）
+pnpm --dir dsh dsh --profile lingoladder   # 只启动，不重新构建
+```
+
+LingoLadder 不再打进 dsh 的 single-exe / 桌面版闭包，桌面版启动方式不适用于本 profile。
 
 ## Use OpenCode Zen Model
 
@@ -29,7 +37,7 @@ llm-pi-ai:
 
 ## HOST API
 
-以下是 LingoLadder dashboard 插件通过 `webServer.register` 暴露的全部 host API（均在 [packages/bundle/lingoladder/src/index.ts](/Users/abcamus/Workspace/dsh/packages/bundle/lingoladder/src/index.ts) 中注册）：
+以下是 LingoLadder dashboard 插件通过 `webServer.register` 暴露的全部 host API（均在 [packages/lingoladder/src/index.ts](../../packages/lingoladder/src/index.ts) 中注册）：
 
 ### 模型 / 设置
 
@@ -87,7 +95,7 @@ llm-pi-ai:
 
 | 方法 | 路径 | 用途 |
 |---|---|---|
-| GET | `/api/materials` | 列出学习材料（launch 目录下的 Markdown 文件） |
+| GET | `/api/materials` | 列出学习材料（`.lingoladder/materials/` 下的 Markdown 文件） |
 | POST | `/api/materials` | 新增材料（`name` + `content`） |
 | DELETE | `/api/materials` | 按 `id` 删除材料 |
 | POST | `/api/materials/extract` | 上传 base64 编码的 PDF，返回提取的纯文本与页数 |
@@ -95,10 +103,10 @@ llm-pi-ai:
 
 ### 其他
 
-- **Fallback seat**（`registerFallback`，index.ts:1669）：GET/HEAD 的静态资源服务，承载 React 前端 dist；`/` 走 connection 插件的 cookie 鉴权，非文件路径回退到 `index.html`（SPA fallback）。
+- **Fallback seat**（`registerFallback`，index.ts:1680）：GET/HEAD 的静态资源服务，承载本包 `web/` 下的前端产物；`/` 走 connection 插件的 cookie 鉴权，非文件路径回退到 `index.html`（SPA fallback）。
 
 **通用错误约定**：方法不匹配 → 405，请求体校验失败 → 400，无待完成会话时上报结果 → 409，删除不存在的材料 → 404，TTS 上游失败 → 502，其余内部错误 → 500。所有路由都是 `kind: 'exact'` 精确匹配，全部经 `ctx.effect()` 注册。
 
 ### Storage
 
-LingoLadder 的存储分两层：学习数据全部是 ./.lingoladder/ 下的纯文件（无数据库），配置类数据走 harness 的 settings/credentials/session 能力
+LingoLadder 的存储分两层：学习数据全部是 `$DSH_HOME/lingoladder/.lingoladder/` 下的纯文件（无数据库），配置类数据走 harness 的 settings/credentials/session 能力

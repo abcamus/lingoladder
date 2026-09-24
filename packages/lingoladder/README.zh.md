@@ -9,7 +9,7 @@ kind: "package-bundle"
 
 ## 概述
 
-本包是 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的 LingoLadder（语阶英语）profile：一个本地 Web 应用，AI 导师消化学习资料、建立词汇库，并在四个专属练习页面上训练你的听说读写。定级测评确定你的 CEFR 等级，游戏化仪表盘从真实学习记录统计 XP、连续天数和各维度正确率，每个 agent 技能都可以在设置页开关。你很少直接安装本包——`dsh` CLI 自带它，profile 引用它。
+本包是 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的 LingoLadder（语阶英语）profile：一个本地 Web 应用，AI 导师消化学习资料、建立词汇库，并在四个专属练习页面上训练你的听说读写。定级测评确定你的 CEFR 等级，游戏化仪表盘从真实学习记录统计 XP、连续天数和各维度正确率，每个 agent 技能都可以在设置页开关。你很少直接安装本包——本仓库用 `pnpm run ship` 把它装进一个 dsh profile。
 
 ## 目录
 
@@ -25,17 +25,19 @@ kind: "package-bundle"
 <a id="use-this-package"></a>
 ## 使用本包
 
-安装 harness CLI、提供 DeepSeek API 密钥、启动 profile——首次运行会在你的主目录下创建所需的一切，并在浏览器中打开仪表盘。
+构建本 bundle 并装入本地 dsh profile、提供 DeepSeek API 密钥、启动 profile——首次运行会在你的主目录下创建所需的一切，并在浏览器中打开仪表盘。
 
 ### 安装与运行
 
 ```sh
-npm i -g @deepseek-ai/dsh
+# 在本仓库根目录执行
 export DEEPSEEK_API_KEY=sk-…        # or put it in a .env file in the directory you launch from
-dsh --profile lingoladder
+pnpm start                          # 构建、安装到 ~/.dsh/profiles/lingoladder 并启动
 ```
 
-首次启动会打印一个带令牌的 URL（例如 `http://127.0.0.1:4000/?token=…`）并打开浏览器。`--host`、`--port`、`--no-open` 分别改变绑定地址、端口和浏览器行为。全部学习数据——资料、词汇、进度、会话文档、语音缓存——都在启动目录的 `./.lingoladder/` 下；请从专门的学习目录启动 profile。
+`ship` 会把本包（补丁层、插件、技能、构建好的仪表盘）复制进 profile 的依赖里；为什么是复制而不是链接，见[仓库 README](../../README.md)。harness 可执行文件来自固定版本的 `dsh/` 子模块——首次运行 `pnpm start` 会拉取并构建它。
+
+首次启动会打印一个带令牌的 URL（例如 `http://127.0.0.1:4000/?token=…`）并打开浏览器。`--host`、`--port`、`--no-open` 分别改变绑定地址、端口和浏览器行为。全部学习数据——资料、词汇、进度、会话文档、语音缓存——都在 `$DSH_HOME/lingoladder/.lingoladder/`（默认 `~/.dsh/lingoladder/.lingoladder/`）下，与从哪个目录启动无关。
 
 ### 练习页面
 
@@ -57,7 +59,7 @@ bundle 是一个 Cordis 补丁层加一个仪表盘插件。补丁挂载 Web 服
 
 ### 组合机制
 
-profile 先启动 `@deepseek-ai/dsh-base`（共享核心：模型访问、工具、会话、设置、技能），再加载本 bundle 的 [`cordis.patch.yml`](cordis.patch.yml)，后者插入 Web 表面各行并为资料搜索的直取重新配置 `tool-web`。预置的五个技能随 `@deepseek-ai/dsh-agent-presets` 发布，运行时注册为额外技能根，由设置驱动的技能配置过滤。
+profile 先启动 `@deepseek-ai/dsh-base`（共享核心：模型访问、工具、会话、设置、技能），再加载本 bundle 的 [`cordis.patch.yml`](cordis.patch.yml)，后者插入 Web 表面各行并为资料搜索的直取重新配置 `tool-web`。五个技能随本包的 `skills/` 目录一起发布，运行时注册为额外技能根，由设置驱动的技能配置过滤。
 
 ### 数据与状态
 
@@ -83,9 +85,10 @@ profile 先启动 `@deepseek-ai/dsh-base`（共享核心：模型访问、工具
 <a id="further-exploration"></a>
 ## 进一步探索
 
-- [app-boot profile 章节](../../../packages/boot/app-boot/README.zh.md) —— profile 如何解析、分层与定制。
-- [生成的组合图](../../../apps/cli/composition.md) —— 每个 shipped profile 的确切插件集合。
-- [Model Experience 契约](../../../.agents/notes/implemented/process/2026-07-12-package-model-experience-contract.zh.md) —— 本页 Model Experience 章节承诺承载的内容。
+以下引用位于承担运行时的固定版本 `dsh/` 子模块中：
+
+- [app-boot profile 章节](../../dsh/packages/boot/app-boot/README.zh.md) —— profile 如何解析、分层与定制。
+- [Model Experience 契约](../../dsh/.agents/notes/implemented/process/2026-07-12-package-model-experience-contract.zh.md) —— 本页 Model Experience 章节承诺承载的内容。
 
 -----
 
@@ -126,7 +129,7 @@ profile 先启动 `@deepseek-ai/dsh-base`（共享核心：模型访问、工具
 
 - **语音播放依赖微软 Edge 朗读服务** —— 未公开端点，可能变化；不可达时页面回退到质量参差的系统语音并明确提示。
 - **Web 服务器是本地单用户表面** —— 默认绑定 `127.0.0.1`，用一次性令牌 URL 隔离浏览器；没有多用户账户模型。
-- **全部学习数据明文存放在启动目录的 `./.lingoladder/` 下**；像对待任何本地文件一样备份或清理该目录。
+- **全部学习数据明文存放在 `$DSH_HOME/lingoladder/.lingoladder/` 下**；像对待任何本地文件一样备份或清理该目录。
 - **口语评分基于识别** —— 浏览器语音识别按词重叠度评价跟读还原度，只是间接衡量发音准确度；API 缺失时以自评替代。
 - **`--no-open` 需要新版安装** —— 旧安装解析该标志但总会打开浏览器；更新 CLI 即可生效。
 
@@ -136,6 +139,6 @@ profile 先启动 `@deepseek-ai/dsh-base`（共享核心：模型访问、工具
 <details>
 <summary>维护者工作上下文——点击展开</summary>
 
-预置 `agent.cordis.yml` 里的 `skills.roots` 块是惰性配置；bundle 自己注册预置技能目录（修改前先看该处的组合注释）。
+技能从本包自己的 `skills/` 目录读取（[`src/index.ts`](src/index.ts) 里的 `resolvePresetSkillsDir`），这就是为什么安装进 profile 的副本依然带着它们；整个过程不涉及任何 agent preset。
 
 </details>

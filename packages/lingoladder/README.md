@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This package is the LingoLadder profile of the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness): a local web app where an AI tutor digests study materials, builds a vocabulary bank, and drills you on four skills — listening, speaking, reading, and writing — each with a dedicated practice page. A placement assessment sets your CEFR level, a gamified dashboard tracks XP, streaks, and per-skill accuracy from real learning records, and every agent skill can be toggled from the settings page. You rarely install this package directly — the `dsh` CLI ships it, and the profile references it.
+This package is the LingoLadder profile of the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness): a local web app where an AI tutor digests study materials, builds a vocabulary bank, and drills you on four skills — listening, speaking, reading, and writing — each with a dedicated practice page. A placement assessment sets your CEFR level, a gamified dashboard tracks XP, streaks, and per-skill accuracy from real learning records, and every agent skill can be toggled from the settings page. You rarely install this package directly — this repository ships it into a dsh profile with `pnpm run ship`.
 
 ## Table of Contents
 
@@ -25,17 +25,19 @@ This package is the LingoLadder profile of the [DeepSeek Harness](https://github
 <a id="use-this-package"></a>
 ## Use this package
 
-Install the harness CLI, provide a DeepSeek API key, and launch the profile — the first run creates everything it needs under your home directory and opens the dashboard in your browser.
+Build this bundle into a local dsh profile, provide a DeepSeek API key, and launch the profile — the first run creates everything it needs under your home directory and opens the dashboard in your browser.
 
 ### Install and run
 
 ```sh
-npm i -g @deepseek-ai/dsh
+# from the root of this repository
 export DEEPSEEK_API_KEY=sk-…        # or put it in a .env file in the directory you launch from
-dsh --profile lingoladder
+pnpm start                          # build, install into ~/.dsh/profiles/lingoladder, launch
 ```
 
-The first launch prints a tokenized URL (for example `http://127.0.0.1:4000/?token=…`) and opens your browser. `--host`, `--port`, and `--no-open` change the binding, port, and browser behavior. All learner data — materials, vocabulary, progress, session documents, and speech audio caches — lives under `./.lingoladder/` in the directory you launched from; run the profile from a dedicated study directory.
+`ship` copies this package (patch layer, plugin, skills, built dashboard) into the profile's dependencies; see the [repository README](../../README.md) for why the install is a copy rather than a link. The harness executable comes from the pinned `dsh/` submodule — `pnpm start` fetches and builds it on the first run.
+
+The first launch prints a tokenized URL (for example `http://127.0.0.1:4000/?token=…`) and opens your browser. `--host`, `--port`, and `--no-open` change the binding, port, and browser behavior. All learner data — materials, vocabulary, progress, session documents, and speech audio caches — lives under `$DSH_HOME/lingoladder/.lingoladder/` (`~/.dsh/lingoladder/.lingoladder/` by default), so it stays put whichever directory you launch from.
 
 ### The practice pages
 
@@ -57,7 +59,7 @@ The bundle is a Cordis patch layer plus one dashboard plugin. The patch mounts t
 
 ### Composition mechanics
 
-The profile boots `@deepseek-ai/dsh-base` (the shared core: model access, tools, sessions, settings, skills) and then this bundle's [`cordis.patch.yml`](cordis.patch.yml), which inserts the web surface rows and reconfigures `tool-web` to enable direct fetching for material search. The preset's five skills ship inside `@deepseek-ai/dsh-agent-presets` and are registered as an extra skill root at runtime, filtered by the settings-driven skill configuration.
+The profile boots `@deepseek-ai/dsh-base` (the shared core: model access, tools, sessions, settings, skills) and then this bundle's [`cordis.patch.yml`](cordis.patch.yml), which inserts the web surface rows and reconfigures `tool-web` to enable direct fetching for material search. The five skills ship in this package's `skills/` directory and are registered as a skill root at runtime, filtered by the settings-driven skill configuration.
 
 ### Data and state
 
@@ -83,9 +85,10 @@ Tutor-visible state is agent-written JSON under `.lingoladder/`: one file per le
 <a id="further-exploration"></a>
 ## Further Exploration
 
-- [app-boot profile section](../../../packages/boot/app-boot/README.md) — how profiles are resolved, layered, and customized.
-- [Generated composition graph](../../../apps/cli/composition.md) — the exact plugin set each shipped profile uses.
-- [Model Experience contract](../../../.agents/notes/implemented/process/2026-07-12-package-model-experience-contract.md) — what this page's Model Experience section is contracted to carry.
+These references live in the pinned `dsh/` submodule that hosts the runtime:
+
+- [app-boot profile section](../../dsh/packages/boot/app-boot/README.md) — how profiles are resolved, layered, and customized.
+- [Model Experience contract](../../dsh/.agents/notes/implemented/process/2026-07-12-package-model-experience-contract.md) — what this page's Model Experience section is contracted to carry.
 
 -----
 
@@ -126,7 +129,7 @@ These limits tell you when the profile needs extra care or a capability degrades
 
 - **Speech playback depends on Microsoft's Edge Read Aloud service** — an undocumented endpoint that could change; when it is unreachable the pages fall back to system speech of varying quality and say so.
 - **The web server is a local single-user surface** — it binds `127.0.0.1` by default and fences the browser with a one-token URL; there is no multi-user account model.
-- **All learner data lives unencrypted under `./.lingoladder/`** in the launch directory; back up or clear that directory as you would any local files.
+- **All learner data lives unencrypted under `$DSH_HOME/lingoladder/.lingoladder/`**; back up or clear that directory as you would any local files.
 - **Speaking scores are recognition-based** — the browser's speech recognition grades repeat-after fidelity by word overlap, which measures pronunciation accuracy only indirectly, and self-assessment replaces it where the API is missing.
 - **`--no-open` needs a current installation** — older installed copies parsed the flag but always opened a browser; update the CLI to honor it.
 
@@ -136,6 +139,6 @@ These limits tell you when the profile needs extra care or a capability degrades
 <details>
 <summary>Working context for maintainers — click to expand</summary>
 
-The preset's `skills.roots` block in `agent.cordis.yml` is inert; the bundle registers the preset skills directory itself (see the composition comment there before "fixing" it).
+The skills are read from this package's own `skills/` directory (`resolvePresetSkillsDir` in [`src/index.ts`](src/index.ts)), which is why a profile-installed copy carries them; no agent preset is involved.
 
 </details>

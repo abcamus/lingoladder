@@ -1,21 +1,13 @@
 {
   "name": "@deepseek-ai/dsh-lingoladder-web",
   "version": "0.1.6-alpha.1",
+  "private": true,
   "type": "module",
   "scripts": {
     "build": "vite build",
     "dev": "vite",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
-  "exports": {
-    "./package.json": "./package.json",
-    "./dist/*": "./dist/*"
-  },
-  "files": [
-    "dist",
-    "!dist/**/*.map",
-    "!dist/preview*"
-  ],
   "devDependencies": {
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

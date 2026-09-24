@@ -10,7 +10,9 @@
   "scripts": {
     "build": "pnpm -r run build",
     "typecheck": "pnpm -r run typecheck",
-    "test": "vitest run"
+    "test": "vitest run",
+    "ship": "node scripts/ship.mjs",
+    "start": "node scripts/ship.mjs --run"
   },
   "devDependencies": {
     "@types/node": "^22.20.0",

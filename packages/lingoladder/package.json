@@ -21,7 +21,9 @@
     "lib/index.js",
     "cordis.patch.yml",
     "lib/types/**/*.d.ts",
-    "skills/**"
+    "skills/**",
+    "web/**",
+    "!web/**/*.map"
   ],
   "license": "MIT",
   "dsh": {
@@ -30,7 +32,6 @@
     }
   },
   "dependencies": {
-    "@deepseek-ai/dsh-lingoladder-web": "workspace:^",
     "msedge-tts": "^2.0.7",
     "unpdf": "^1.8.1"
   },

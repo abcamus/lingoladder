@@ -16,8 +16,9 @@
  */
 
 import { exec } from 'node:child_process'
-import { createRequire } from 'node:module'
-import { dirname, join } from 'node:path'
+import { homedir } from 'node:os'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { mkdir, readFile, readdir, stat, unlink, writeFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
@@ -111,50 +112,60 @@ interface ChatAgent {
   readonly dispose: () => Promise<void>
 }
 
-/** Resolve the absolute path to the built web frontend dist/index.html. */
+/**
+ * This package's root directory, taken from the module URL so it is correct
+ * from `src/` under tsx and from the built `lib/` alike.
+ */
+const PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+
+/** Resolve the absolute path to the dashboard entry built into this package. */
 function resolveDistIndex(): string {
-  const require = createRequire(import.meta.url)
-  return join(
-    dirname(require.resolve('@deepseek-ai/dsh-lingoladder-web/package.json')),
-    'dist', 'index.html',
-  )
+  return join(PACKAGE_ROOT, 'web', 'index.html')
 }
 
 /** Resolve the absolute path to this bundle's own shipped skills directory. */
 function resolvePresetSkillsDir(): string {
-  const require = createRequire(import.meta.url)
-  return join(dirname(require.resolve('@deepseek-ai/dsh-lingoladder/package.json')), 'skills')
+  return join(PACKAGE_ROOT, 'skills')
 }
 
-/** Directory under the launch workspace where learning materials are stored as Markdown files. */
-const MATERIALS_DIR = join(process.cwd(), '.lingoladder', 'materials')
+/**
+ * Product workspace root: `$DSH_HOME/lingoladder`, defaulting to
+ * `~/.dsh/lingoladder`. The dashboard's file reads AND the chat agent's
+ * working directory both anchor here, so the `.lingoladder/...` relative paths
+ * the skills write keep matching the absolute paths the HTTP surface reads —
+ * whatever directory `dsh` happened to launch from.
+ */
+const WORKSPACE_ROOT = join(process.env.DSH_HOME?.trim() || join(homedir(), '.dsh'), 'lingoladder')
 
-/** Directory under the launch workspace where the agent writes one learning record per JSON file. */
-const PROGRESS_DIR = join(process.cwd(), '.lingoladder', 'progress')
+/** Directory under the product workspace where learning materials are stored as Markdown files. */
+const MATERIALS_DIR = join(WORKSPACE_ROOT, '.lingoladder', 'materials')
 
-/** Directory under the launch workspace where digested vocabulary is banked, one file per material. */
-const VOCABULARY_DIR = join(process.cwd(), '.lingoladder', 'vocabulary')
+/** Directory under the product workspace where the agent writes one learning record per JSON file. */
+const PROGRESS_DIR = join(WORKSPACE_ROOT, '.lingoladder', 'progress')
 
-/** Learner placement record under the launch workspace: agent-written during an assessment, dashboard-written for a manual level pick. */
-const PROFILE_PATH = join(process.cwd(), '.lingoladder', 'profile.json')
+/** Directory under the product workspace where digested vocabulary is banked, one file per material. */
+const VOCABULARY_DIR = join(WORKSPACE_ROOT, '.lingoladder', 'vocabulary')
+
+/** Learner placement record under the product workspace: agent-written during an assessment, dashboard-written for a manual level pick. */
+const PROFILE_PATH = join(WORKSPACE_ROOT, '.lingoladder', 'profile.json')
 
 /** In-flight assessment stage document the placement skill rewrites at every stage transition. */
-const PLACEMENT_PROGRESS_PATH = join(process.cwd(), '.lingoladder', 'placement-progress.json')
+const PLACEMENT_PROGRESS_PATH = join(WORKSPACE_ROOT, '.lingoladder', 'placement-progress.json')
 
 /** In-flight listening exercise document the exercise-generator skill writes for the listening page. */
-const LISTENING_SESSION_PATH = join(process.cwd(), '.lingoladder', 'listening-session.json')
+const LISTENING_SESSION_PATH = join(WORKSPACE_ROOT, '.lingoladder', 'listening-session.json')
 
 /** In-flight reading exercise document the exercise-generator skill writes for the reading page. */
-const READING_SESSION_PATH = join(process.cwd(), '.lingoladder', 'reading-session.json')
+const READING_SESSION_PATH = join(WORKSPACE_ROOT, '.lingoladder', 'reading-session.json')
 
 /** In-flight writing session document the exercise-generator skill writes and rewrites (task, then graded result). */
-const WRITING_SESSION_PATH = join(process.cwd(), '.lingoladder', 'writing-session.json')
+const WRITING_SESSION_PATH = join(WORKSPACE_ROOT, '.lingoladder', 'writing-session.json')
 
 /** In-flight speaking exercise document the exercise-generator skill writes for the speaking page. */
-const SPEAKING_SESSION_PATH = join(process.cwd(), '.lingoladder', 'speaking-session.json')
+const SPEAKING_SESSION_PATH = join(WORKSPACE_ROOT, '.lingoladder', 'speaking-session.json')
 
 /** Disk cache for synthesized listening-passage audio, keyed by text+voice. */
-const TTS_CACHE_DIR = join(process.cwd(), '.lingoladder', 'tts-cache')
+const TTS_CACHE_DIR = join(WORKSPACE_ROOT, '.lingoladder', 'tts-cache')
 
 /** One learning material registered by the dashboard. */
 interface MaterialEntry {
@@ -1490,7 +1501,7 @@ export function apply(ctx: Context): void {
           const sessionId = SessionId(`lingoladder-chat-${Date.now()}`)
           const handle = await ctx.agents.create({
             sessionId,
-            meta: { cwd: process.cwd() },
+            meta: { cwd: WORKSPACE_ROOT },
             agentOptions: {
               provider: activeModel.provider,
               model: activeModel.model,

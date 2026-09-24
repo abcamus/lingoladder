@@ -11,7 +11,7 @@
 import { createHash } from 'node:crypto'
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts'
+import { installResolutionGuard } from './resolution-guard.ts'
 
 /** Neural voices the listening page offers, in picker order. */
 export const TTS_VOICES = ['en-US-AvaNeural', 'en-US-EmmaNeural', 'en-US-BrianNeural', 'en-US-GuyNeural'] as const
@@ -33,6 +33,21 @@ export function escapeSsmlText(text: string): string {
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
+}
+
+/** The msedge-tts module, imported once through {@link loadMsEdgeTts}. */
+let msedgeTts: Promise<typeof import('msedge-tts')> | undefined
+
+/**
+ * Import msedge-tts behind the resolution guard. The import is deferred rather
+ * than static because the guard has to be installed before the module graph
+ * reaches its CommonJS requires, which is still the import phase of whoever
+ * imported this file statically.
+ */
+function loadMsEdgeTts(): Promise<typeof import('msedge-tts')> {
+  installResolutionGuard()
+  msedgeTts ??= import('msedge-tts')
+  return msedgeTts
 }
 
 /** Deterministic cache file name for one text+voice pair. */
@@ -58,6 +73,7 @@ export async function synthesizeSpeech(text: string, voice: TtsVoice, cacheDir: 
   const cachePath = join(cacheDir, ttsCacheFileName(text, voice))
   const cached = await readFile(cachePath).catch(() => undefined)
   if (cached !== undefined) return { audio: cached, contentType: 'audio/mpeg' }
+  const { MsEdgeTTS, OUTPUT_FORMAT } = await loadMsEdgeTts()
   const tts = new MsEdgeTTS()
   try {
     await tts.setMetadata(voice, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3)

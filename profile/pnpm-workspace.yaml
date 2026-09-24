@@ -1,0 +1,14 @@
+packages:
+  - .
+
+# A flat tree is what lets an installed bundle fall through to
+# `$DSH_HOME/profiles/node_modules`, where dsh links the running installation's
+# own cordis — so the bundle and the harness share one module instance.
+nodeLinker: hoisted
+autoInstallPeers: false
+
+allowBuilds:
+  # pnpm fails an install whose dependency build scripts are undecided
+  # (ERR_PNPM_IGNORED_BUILDS) rather than skipping them; this package's only
+  # script is an `npx only-allow pnpm` guard.
+  msedge-tts: true

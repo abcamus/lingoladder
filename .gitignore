@@ -2,6 +2,7 @@ node_modules/
 lib/
 !src/lib/
 dist/
+packages/lingoladder/web/
 *.tsbuildinfo
 .DS_Store
 .lingoladder/
